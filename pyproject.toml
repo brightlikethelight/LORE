@@ -1,0 +1,126 @@
+[project]
+name = "learned-obfuscated-reasoning"
+version = "0.1.0"
+description = "Research framework for studying learned obfuscated reasoning in LLMs"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+authors = [
+    {name = "Bright Liu", email = "brightliu@college.harvard.edu"}
+]
+keywords = ["llm", "prompt-optimization", "alignment", "safety", "reasoning"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+
+dependencies = [
+    # Prompt optimization frameworks
+    "dspy-ai>=2.5.0",
+    "gepa>=0.1.0",
+
+    # Evaluation framework
+    "inspect-ai>=0.3.0",
+
+    # Model serving
+    "vllm>=0.6.0",
+
+    # Frontier model APIs
+    "anthropic>=0.39.0",
+    "openai>=1.50.0",
+    "google-generativeai>=0.8.0",
+
+    # Experiment tracking
+    "wandb>=0.18.0",
+
+    # Core utilities
+    "pyyaml>=6.0",
+    "python-dotenv>=1.0.0",
+    "pydantic>=2.0.0",
+    "httpx>=0.27.0",
+    "tenacity>=8.2.0",
+    "rich>=13.0.0",
+    "typer>=0.12.0",
+
+    # Data processing
+    "datasets>=2.20.0",
+    "pandas>=2.0.0",
+    "numpy>=1.26.0",
+
+    # Async support
+    "aiohttp>=3.9.0",
+    "asyncio-throttle>=1.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.23.0",
+    "pytest-cov>=4.0.0",
+    "ruff>=0.6.0",
+    "mypy>=1.11.0",
+    "pre-commit>=3.8.0",
+    "ipython>=8.0.0",
+    "jupyter>=1.0.0",
+]
+
+sandbox = [
+    # RedCode sandbox dependencies
+    "docker>=7.0.0",
+    "docker-compose>=1.29.0",
+]
+
+[project.scripts]
+lore = "src.cli:app"
+
+[project.urls]
+Homepage = "https://github.com/brightliu/learned-obfuscated-reasoning"
+Documentation = "https://github.com/brightliu/learned-obfuscated-reasoning#readme"
+Repository = "https://github.com/brightliu/learned-obfuscated-reasoning"
+Issues = "https://github.com/brightliu/learned-obfuscated-reasoning/issues"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src"]
+
+[tool.ruff]
+target-version = "py310"
+line-length = 100
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # Pyflakes
+    "I",   # isort
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "UP",  # pyupgrade
+]
+ignore = [
+    "E501",  # line too long (handled by formatter)
+    "B008",  # do not perform function calls in argument defaults
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["src"]
+
+[tool.mypy]
+python_version = "3.10"
+strict = true
+warn_return_any = true
+warn_unused_ignores = true
+disallow_untyped_defs = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+addopts = "-v --tb=short"

@@ -1,0 +1,116 @@
+# Model Configuration for LORE Experiments
+# Defines endpoints, parameters, and rate limits for all model interfaces
+
+frontier_models:
+  anthropic:
+    claude-sonnet-4:
+      model_id: "claude-sonnet-4-20250514"
+      max_tokens: 8192
+      temperature: 0.7
+      rate_limit_rpm: 1000
+      rate_limit_tpm: 100000
+
+    claude-opus-4:
+      model_id: "claude-opus-4-20250514"
+      max_tokens: 8192
+      temperature: 0.7
+      rate_limit_rpm: 500
+      rate_limit_tpm: 50000
+
+  openai:
+    gpt-4o:
+      model_id: "gpt-4o-2024-08-06"
+      max_tokens: 8192
+      temperature: 0.7
+      rate_limit_rpm: 5000
+      rate_limit_tpm: 300000
+
+    gpt-4o-mini:
+      model_id: "gpt-4o-mini-2024-07-18"
+      max_tokens: 8192
+      temperature: 0.7
+      rate_limit_rpm: 10000
+      rate_limit_tpm: 1000000
+
+    o1:
+      model_id: "o1-2024-12-17"
+      max_completion_tokens: 32768
+      temperature: 1.0  # o1 requires temperature=1
+      rate_limit_rpm: 500
+      rate_limit_tpm: 30000
+
+  google:
+    gemini-2.0-flash:
+      model_id: "gemini-2.0-flash"
+      max_output_tokens: 8192
+      temperature: 0.7
+      rate_limit_rpm: 1500
+      rate_limit_tpm: 1000000
+
+    gemini-1.5-pro:
+      model_id: "gemini-1.5-pro-002"
+      max_output_tokens: 8192
+      temperature: 0.7
+      rate_limit_rpm: 360
+      rate_limit_tpm: 4000000
+
+open_weight_models:
+  qwen:
+    qwen2.5-72b-instruct:
+      model_id: "Qwen/Qwen2.5-72B-Instruct"
+      max_tokens: 8192
+      temperature: 0.7
+      vllm_config:
+        tensor_parallel_size: 4
+        gpu_memory_utilization: 0.9
+        max_model_len: 32768
+
+    qwen2.5-32b-instruct:
+      model_id: "Qwen/Qwen2.5-32B-Instruct"
+      max_tokens: 8192
+      temperature: 0.7
+      vllm_config:
+        tensor_parallel_size: 2
+        gpu_memory_utilization: 0.9
+        max_model_len: 32768
+
+  deepseek:
+    deepseek-v3:
+      model_id: "deepseek-ai/DeepSeek-V3"
+      max_tokens: 8192
+      temperature: 0.7
+      vllm_config:
+        tensor_parallel_size: 8
+        gpu_memory_utilization: 0.95
+        max_model_len: 65536
+
+    deepseek-r1:
+      model_id: "deepseek-ai/DeepSeek-R1"
+      max_tokens: 32768
+      temperature: 0.6
+      vllm_config:
+        tensor_parallel_size: 8
+        gpu_memory_utilization: 0.95
+        max_model_len: 131072
+
+# Default model selections for different experiment phases
+defaults:
+  # Optimizer target model (generates reasoning traces)
+  optimizer_target: "claude-sonnet-4"
+
+  # Monitor/autorater model (evaluates traces)
+  monitor_model: "gpt-4o"
+
+  # Transfer evaluation models
+  transfer_targets:
+    - "gpt-4o"
+    - "gemini-2.0-flash"
+    - "qwen2.5-72b-instruct"
+
+# Retry configuration
+retry:
+  max_attempts: 5
+  initial_delay: 1.0
+  max_delay: 60.0
+  exponential_base: 2.0
+  jitter: true

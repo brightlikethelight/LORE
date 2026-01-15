@@ -1,0 +1,193 @@
+# Docker Compose configuration for LORE
+# Provides sandboxed execution environment for safety research
+
+version: "3.9"
+
+services:
+  # ==========================================================================
+  # RedCode-style Sandbox for Isolated Code Execution
+  # ==========================================================================
+  sandbox:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.sandbox
+    image: lore-sandbox:latest
+    container_name: lore-sandbox
+    restart: unless-stopped
+
+    # Security constraints
+    security_opt:
+      - no-new-privileges:true
+      - seccomp:docker/seccomp-profile.json
+    cap_drop:
+      - ALL
+    read_only: true
+
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          cpus: "2"
+          memory: 4G
+        reservations:
+          memory: 1G
+
+    # Network isolation
+    networks:
+      - sandbox-internal
+    network_mode: "none"  # Complete network isolation
+
+    # Temporary filesystem for execution
+    tmpfs:
+      - /tmp:size=512M,mode=1777
+      - /run:size=64M,mode=1777
+
+    # Environment
+    environment:
+      - PYTHONDONTWRITEBYTECODE=1
+      - PYTHONUNBUFFERED=1
+
+    # Health check
+    healthcheck:
+      test: ["CMD", "python", "-c", "print('healthy')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ==========================================================================
+  # vLLM Server for Open-Weight Models
+  # ==========================================================================
+  vllm:
+    image: vllm/vllm-openai:latest
+    container_name: lore-vllm
+    runtime: nvidia
+    restart: unless-stopped
+
+    # GPU configuration
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+    # Model configuration
+    environment:
+      - HF_TOKEN=${HF_TOKEN}
+      - VLLM_API_KEY=${VLLM_API_KEY:-EMPTY}
+
+    # Command to start server
+    command: >
+      --model Qwen/Qwen2.5-72B-Instruct
+      --tensor-parallel-size 4
+      --gpu-memory-utilization 0.9
+      --max-model-len 32768
+      --port 8000
+      --trust-remote-code
+
+    ports:
+      - "8000:8000"
+
+    volumes:
+      - hf-cache:/root/.cache/huggingface
+
+    networks:
+      - lore-network
+
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 60s
+      timeout: 30s
+      retries: 5
+      start_period: 300s
+
+  # ==========================================================================
+  # Redis for Result Caching
+  # ==========================================================================
+  redis:
+    image: redis:7-alpine
+    container_name: lore-redis
+    restart: unless-stopped
+
+    command: redis-server --maxmemory 1gb --maxmemory-policy allkeys-lru
+
+    ports:
+      - "6379:6379"
+
+    volumes:
+      - redis-data:/data
+
+    networks:
+      - lore-network
+
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ==========================================================================
+  # LORE Application (for API mode)
+  # ==========================================================================
+  lore-api:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    image: lore:latest
+    container_name: lore-api
+    restart: unless-stopped
+
+    env_file:
+      - .env
+
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - VLLM_BASE_URL=http://vllm:8000
+
+    ports:
+      - "8080:8080"
+
+    volumes:
+      - ./results:/app/results
+      - ./configs:/app/configs:ro
+
+    networks:
+      - lore-network
+
+    depends_on:
+      redis:
+        condition: service_healthy
+
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+# ==========================================================================
+# Networks
+# ==========================================================================
+networks:
+  lore-network:
+    driver: bridge
+
+  sandbox-internal:
+    driver: bridge
+    internal: true  # No external access
+
+# ==========================================================================
+# Volumes
+# ==========================================================================
+volumes:
+  hf-cache:
+    driver: local
+
+  redis-data:
+    driver: local
+
+# ==========================================================================
+# Profiles for different deployment scenarios
+# ==========================================================================
+# Use: docker compose --profile gpu up
+# Or: docker compose --profile cpu up

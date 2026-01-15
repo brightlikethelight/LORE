@@ -1,0 +1,156 @@
+# GEPA (Genetic Evolution of Prompt Agents) Configuration
+# Hyperparameters for prompt optimization experiments
+
+gepa:
+  # Population settings
+  population:
+    size: 50
+    elite_size: 5
+    tournament_size: 3
+
+  # Evolution parameters
+  evolution:
+    generations: 100
+    mutation_rate: 0.3
+    crossover_rate: 0.7
+    immigration_rate: 0.1  # New random individuals per generation
+
+  # Mutation operators
+  mutation:
+    operators:
+      - name: "paraphrase"
+        weight: 0.3
+        temperature: 0.8
+
+      - name: "expand"
+        weight: 0.2
+        max_tokens_added: 100
+
+      - name: "compress"
+        weight: 0.15
+        target_reduction: 0.2
+
+      - name: "style_transfer"
+        weight: 0.2
+        styles:
+          - "formal"
+          - "concise"
+          - "step-by-step"
+          - "socratic"
+
+      - name: "domain_injection"
+        weight: 0.15
+        domains:
+          - "mathematical"
+          - "logical"
+          - "computational"
+
+  # Fitness evaluation
+  fitness:
+    primary_metric: "task_accuracy"
+    secondary_metrics:
+      - "reasoning_coherence"
+      - "solution_efficiency"
+    aggregation: "weighted_sum"
+    weights:
+      task_accuracy: 0.7
+      reasoning_coherence: 0.2
+      solution_efficiency: 0.1
+
+    # Batch evaluation settings
+    eval_batch_size: 20
+    eval_samples_per_individual: 50
+    parallel_evaluations: 10
+
+  # Early stopping
+  early_stopping:
+    enabled: true
+    patience: 15
+    min_delta: 0.001
+    metric: "task_accuracy"
+
+# PromptBreeder specific settings (Anthropic-style)
+promptbreeder:
+  # Thinking-style patterns to evolve
+  thinking_styles:
+    initial_pool:
+      - "Let me break this down step by step"
+      - "First, I'll identify the key components"
+      - "To solve this, I need to consider"
+      - "The approach I'll take is"
+
+  # Mutation prompts (meta-prompts that generate variations)
+  mutation_prompts:
+    - "Rephrase the following instruction to be more precise: {prompt}"
+    - "Make this instruction more concise while preserving meaning: {prompt}"
+    - "Add a step-by-step structure to: {prompt}"
+    - "Combine the best aspects of these instructions: {prompt1} and {prompt2}"
+
+  # Self-referential improvement
+  self_improvement:
+    enabled: true
+    generations_between_meta_updates: 10
+
+  # Diversity maintenance
+  diversity:
+    method: "semantic_clustering"
+    min_clusters: 5
+    similarity_threshold: 0.85
+
+# MIPRO (Multi-prompt Instruction Proposal and Optimization) settings
+mipro:
+  # Instruction proposal
+  proposal:
+    num_candidates: 20
+    temperature: 0.9
+    proposal_model: "claude-sonnet-4"
+
+  # Bayesian optimization
+  bayesian_opt:
+    n_initial_points: 10
+    n_iterations: 50
+    acquisition_function: "expected_improvement"
+    exploration_weight: 0.1
+
+  # Instruction components
+  components:
+    - name: "task_description"
+      optimize: true
+      max_length: 200
+
+    - name: "format_instructions"
+      optimize: true
+      max_length: 100
+
+    - name: "few_shot_examples"
+      optimize: true
+      num_examples: 3
+
+    - name: "reasoning_guidance"
+      optimize: true
+      max_length: 150
+
+# Logging and checkpointing
+logging:
+  wandb:
+    enabled: true
+    project: "lore-optimization"
+    entity: null  # Uses default
+    tags:
+      - "gepa"
+      - "prompt-optimization"
+
+  checkpoints:
+    enabled: true
+    directory: "./results/checkpoints"
+    save_every_n_generations: 5
+    keep_best_n: 3
+
+  verbose: true
+  log_level: "INFO"
+
+# Resource management
+resources:
+  max_concurrent_api_calls: 50
+  request_timeout_seconds: 120
+  rate_limit_buffer: 0.9  # Use 90% of rate limit

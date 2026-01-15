@@ -1,0 +1,39 @@
+# Dockerfile for LORE Sandbox Environment
+# Provides isolated execution environment for safety research
+
+FROM python:3.11-slim-bookworm AS base
+
+# Security: Run as non-root user
+RUN groupadd -r sandbox && useradd -r -g sandbox sandbox
+
+# Install minimal dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create restricted environment
+WORKDIR /sandbox
+
+# Install Python packages for code execution
+RUN pip install --no-cache-dir \
+    numpy==1.26.* \
+    sympy==1.12.* \
+    scipy==1.11.* \
+    && pip cache purge
+
+# Remove pip to prevent package installation
+RUN pip uninstall -y pip setuptools wheel
+
+# Create execution script
+COPY --chown=sandbox:sandbox docker/sandbox_runner.py /sandbox/runner.py
+
+# Switch to non-root user
+USER sandbox
+
+# Set restrictive environment
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PYTHONHASHSEED=random \
+    HOME=/tmp
+
+# Default command
+CMD ["python", "/sandbox/runner.py"]
