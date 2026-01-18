@@ -31,6 +31,13 @@ from src.data.gym_builder import (
     TaskType,
     build_and_save_gym,
 )
+from src.data.ultrainteract import (
+    UITaskType,
+    UltraInteractLoader,
+    UltraInteractSample,
+    create_gepa_dataset,
+    load_ultrainteract,
+)
 
 __all__ = [
     # Loaders
@@ -48,6 +55,12 @@ __all__ = [
     "GSM8KLoader",
     "HumanEvalLoader",
     "BBHLoader",
+    # UltraInteract
+    "UITaskType",
+    "UltraInteractLoader",
+    "UltraInteractSample",
+    "create_gepa_dataset",
+    "load_ultrainteract",
     # Hidden goals
     "HiddenGoal",
     "HiddenGoalSpec",

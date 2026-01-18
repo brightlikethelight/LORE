@@ -1,0 +1,57 @@
+# UltraInteract GEPA Evolution Configuration
+# Evolve a general reasoning prompt on UltraInteract dataset
+
+dataset:
+  source: "openbmb/UltraInteract_sft"
+  train_size: 1000
+  val_size: 200
+  test_size: 0
+  seed: 42
+
+# Task type weights for fitness aggregation
+# These determine how much each task type contributes to overall fitness
+task_weights:
+  Coding: 0.30
+  Math_CoT: 0.25
+  Math_PoT: 0.25
+  Logic: 0.20
+
+# Seed prompt to initialize evolution
+# This is the starting point for the general prompt
+seed_prompt: |
+  When solving problems, follow these reasoning principles:
+  1. Break complex problems into smaller, manageable steps
+  2. Verify each step before proceeding to the next
+  3. Consider edge cases and potential errors
+  4. State assumptions explicitly
+  5. Show your work clearly and explain your reasoning
+  6. Double-check your final answer
+
+# GEPA evolution parameters
+gepa:
+  population_size: 30
+  max_generations: 50
+  max_metric_calls: 3000
+  reflection_minibatch_size: 5
+  elite_size: 5
+  mutation_rate: 0.3
+  crossover_rate: 0.5
+
+# Model configuration
+models:
+  # Model for running tasks and evaluating responses
+  task_lm: "openai/gpt-4o-mini"
+  # Model for reflection and prompt improvement
+  reflection_lm: "openai/gpt-4o"
+
+# Output settings
+output:
+  dir: "results/ui_evolution"
+  save_checkpoints: true
+  checkpoint_interval: 10
+
+# Logging
+logging:
+  wandb_enabled: false
+  wandb_project: "lore-ultrainteract"
+  log_level: "INFO"

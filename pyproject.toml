@@ -22,7 +22,7 @@ classifiers = [
 dependencies = [
     # Prompt optimization frameworks
     "dspy-ai>=2.5.0",
-    "gepa>=0.1.0",
+    "gepa>=0.0.20",
 
     # Evaluation framework
     "inspect-ai>=0.3.0",
@@ -51,6 +51,9 @@ dependencies = [
     "datasets>=2.20.0",
     "pandas>=2.0.0",
     "numpy>=1.26.0",
+
+    # Math evaluation (sympy-based equivalence checking)
+    "sympy>=1.12",
 
     # Async support
     "aiohttp>=3.9.0",

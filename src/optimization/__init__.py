@@ -44,6 +44,20 @@ from src.optimization.gepa import (
 )
 from src.optimization.mipro import MIPROOptimizer
 from src.optimization.promptbreeder import PromptBreederOptimizer
+from src.optimization.ultrainteract_gepa import (
+    # Types
+    UIFitnessComponents,
+    UIOptimizationResult,
+    # Adapter
+    UltraInteractGEPAAdapter,
+    # Constants
+    TASK_TEMPLATES,
+    DEFAULT_SEED_PROMPT,
+    # Functions
+    run_ultrainteract_evolution,
+    get_composed_prompt,
+    load_evolved_prompt,
+)
 from src.optimization.grg_mutations import (
     # Constants
     ATOMIC_MODULES,
@@ -102,6 +116,15 @@ __all__ = [
     # Other optimizers
     "PromptBreederOptimizer",
     "MIPROOptimizer",
+    # UltraInteract GEPA
+    "UIFitnessComponents",
+    "UIOptimizationResult",
+    "UltraInteractGEPAAdapter",
+    "TASK_TEMPLATES",
+    "DEFAULT_SEED_PROMPT",
+    "run_ultrainteract_evolution",
+    "get_composed_prompt",
+    "load_evolved_prompt",
     # GRG Mutations - Constants
     "ATOMIC_MODULES",
     "ATOMIC_MODULES_BY_CATEGORY",
