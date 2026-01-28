@@ -1,0 +1,139 @@
+# SkyRL GRPO Training Configuration
+#
+# This config is optimized for training on OpenR1-Math-220k and SynLogic datasets
+# using the SkyRL framework for GRPO (Group Relative Policy Optimization).
+#
+# SkyRL provides faster single-GPU training compared to Verl through:
+# - Better async batched generation
+# - Simpler setup without mandatory Ray cluster
+# - Native GRPO support
+#
+# Reference: https://github.com/skypilot-org/skyrl
+
+# Model Configuration
+model:
+  name: "Qwen/Qwen2.5-7B-Instruct"
+  # Alternative models:
+  # - "Qwen/Qwen2.5-14B-Instruct"
+  # - "deepseek-ai/DeepSeek-R1-Distill-Qwen-7B"
+  # - "meta-llama/Llama-3.1-8B-Instruct"
+
+# GRPO Training Configuration
+grpo:
+  # Group size for GRPO (number of generations per prompt)
+  # Lower than Verl's default (16) for faster training
+  group_size: 4
+
+  # Learning rate
+  learning_rate: 1e-6
+
+  # Clip ratio for PPO-style objective
+  clip_ratio: 0.2
+
+  # KL penalty coefficient
+  beta: 0.04
+
+  # Number of training epochs
+  num_epochs: 1
+
+  # Batch size (prompts per batch)
+  # SkyRL handles generation batching internally
+  batch_size: 8
+
+  # Sequence lengths
+  max_prompt_length: 2048
+  max_response_length: 4096
+
+  # Sampling parameters
+  temperature: 0.7
+  top_p: 0.9
+
+  # Optimization
+  gradient_accumulation_steps: 4
+  max_grad_norm: 1.0
+  warmup_ratio: 0.1
+  weight_decay: 0.01
+
+  # Precision
+  bf16: true
+
+# LoRA Configuration (for efficient fine-tuning)
+lora:
+  enabled: true
+  r: 16
+  alpha: 32
+  dropout: 0.05
+  target_modules:
+    - q_proj
+    - v_proj
+    - k_proj
+    - o_proj
+    - gate_proj
+    - up_proj
+    - down_proj
+
+# vLLM Configuration (for faster generation)
+vllm:
+  enabled: true
+  tensor_parallel_size: 1  # Increase for multi-GPU
+
+# Dataset Configuration
+dataset:
+  # Sample sizes for each task type
+  math_samples: 10000
+  logic_samples: 5000
+  code_samples: 2000
+
+  # Validation ratio
+  val_ratio: 0.1
+
+  # Seed for reproducibility
+  seed: 42
+
+# Reward Configuration
+reward:
+  # Math reward settings
+  math:
+    tolerance: 1e-6
+    timeout: 30
+
+  # Logic reward settings
+  logic:
+    require_think_tags: true
+
+  # Code execution settings
+  code:
+    use_docker: false  # Set to true if Docker available
+    timeout: 10
+    partial_credit: false
+
+# Checkpointing and Logging
+output_dir: "results/skyrl_grpo"
+logging_steps: 10
+save_steps: 100
+eval_steps: 100
+save_total_limit: 3
+
+# WandB Configuration
+wandb:
+  enabled: false
+  project: "lore-skyrl-grpo"
+  entity: null
+  tags:
+    - grpo
+    - skyrl
+    - openr1
+    - synlogic
+
+# Smoke Test Configuration
+# Use with: lore skyrl-train --smoke-test
+# The CLI will override these settings automatically for smoke tests.
+# For manual smoke testing, use these values:
+smoke_test:
+  math_samples: 50
+  logic_samples: 30
+  code_samples: 20
+  max_steps: 10
+  batch_size: 2
+  group_size: 2
+  max_response_length: 512  # Shorter responses for faster testing
