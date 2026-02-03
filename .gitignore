@@ -83,3 +83,15 @@ docker/tmp/
 
 # WandB
 wandb/
+
+# Cache and experiments (auto-generated)
+.cache/
+experiments/
+
+# Generated data and outputs
+data/
+outputs/
+results_archive
+
+# External repos (add as submodules if needed)
+SkyRL/

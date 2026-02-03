@@ -3,25 +3,16 @@
 import asyncio
 import os
 import re
+from dataclasses import dataclass
 from urllib.parse import urlparse
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
 from typing import Any
 
 import httpx
 from tenacity import retry, stop_after_attempt, wait_exponential
 
 from src.models.frontier_api import FrontierModel
-
-
-@dataclass
-class CompletionResponse:
-    """Response from model completion."""
-
-    content: str
-    model: str
-    usage: dict[str, int]
-    finish_reason: str
+from src.models.types import CompletionResponse
 
 
 class OpenWeightsClient(ABC):

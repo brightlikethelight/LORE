@@ -94,3 +94,64 @@ Config files in `configs/`:
 - `datasets.yaml` - dataset paths and hidden goal templates
 - `models.yaml` - model specs and rate limits
 - `gepa_config.yaml` - optimization hyperparameters
+
+## Experiment Documentation
+
+After completing any experiment, save a summary to the `experiments/` folder in markdown format.
+
+**Required structure:**
+```
+experiments/
+├── YYYY-MM-DD_experiment_name.md
+└── assets/
+    └── YYYY-MM-DD_experiment_name/
+        ├── figure1.png
+        ├── figure2.png
+        └── ...
+```
+
+**Summary template:**
+```markdown
+# Experiment: [Name]
+
+**Date:** YYYY-MM-DD
+**Status:** Completed / In Progress / Failed
+
+## Overview
+Brief description of what was tested and why.
+
+## Configuration
+- Task Model: [model]
+- Monitor Model: [model]
+- N Samples: [n]
+- Other relevant parameters...
+
+## Results
+
+### Key Metrics
+| Metric | Baseline | Evolved | Delta |
+|--------|----------|---------|-------|
+| ... | ... | ... | ... |
+
+### Figures
+
+![Distribution of Suspicion Scores](assets/YYYY-MM-DD_experiment_name/distribution.png)
+
+![Paired Comparison](assets/YYYY-MM-DD_experiment_name/scatter.png)
+
+### Statistical Tests
+- Test name: p-value, interpretation
+
+## Conclusions
+Key findings and implications.
+
+## Files
+- Raw data: `results/[experiment_dir]/raw_data.json`
+- Script: `scripts/[script_name].py`
+```
+
+**Guidelines:**
+- Use relative paths for images so they render in GitHub
+- Save figures as PNG at 150+ DPI
+- Include both raw data location and the script used
+- Tag experiments with relevant keywords in the filename

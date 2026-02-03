@@ -1,0 +1,97 @@
+# RL Training Configuration for LORE
+# Uses TRL's GRPO (Group Relative Policy Optimization)
+
+# GRPO Training Parameters
+grpo:
+  model_name: "Qwen/Qwen2.5-7B-Instruct"
+
+  # Generation settings
+  num_generations: 4          # Group size for GRPO (samples per prompt)
+  max_new_tokens: 512         # Maximum tokens to generate
+  temperature: 0.7            # Sampling temperature
+
+  # Training settings
+  learning_rate: 1.0e-6       # Learning rate for policy
+  kl_coef: 0.1                # KL penalty coefficient
+  num_train_epochs: 1         # Number of training epochs
+  per_device_train_batch_size: 1
+  gradient_accumulation_steps: 8
+  max_grad_norm: 1.0          # Gradient clipping
+
+  # Optimization
+  warmup_ratio: 0.1
+  weight_decay: 0.01
+
+  # Logging
+  logging_steps: 1           # Log every step to see reward progression
+  save_steps: 10             # Save checkpoint every 10 steps
+  eval_steps: 100
+
+  # Mixed precision
+  bf16: true
+
+  # Checkpointing
+  save_total_limit: 3
+  output_dir: "results/grpo"
+
+# LoRA Configuration
+lora:
+  enabled: true
+  r: 16                       # LoRA rank
+  lora_alpha: 32              # LoRA alpha scaling
+  lora_dropout: 0.05
+  target_modules:
+    - "q_proj"
+    - "v_proj"
+    - "k_proj"
+    - "o_proj"
+    - "gate_proj"
+    - "up_proj"
+    - "down_proj"
+  task_type: "CAUSAL_LM"
+
+# Dataset Configuration
+dataset:
+  name: "openbmb/UltraInteract_sft"
+  train_size: 5000
+  val_size: 500
+  seed: 42
+  task_types:
+    - "Coding"
+    - "Math_CoT"
+    - "Math_PoT"
+    - "Logic"
+  # Task weights for sampling (if stratified)
+  task_weights:
+    Coding: 0.30
+    Math_CoT: 0.25
+    Math_PoT: 0.25
+    Logic: 0.20
+
+# Reward Configuration
+reward:
+  # Reward for correct answer
+  correct_reward: 1.0
+  # Reward for incorrect answer
+  incorrect_reward: 0.0
+  # Partial credit settings (optional)
+  partial_credit: false
+  # Tolerance for math comparisons
+  math_tolerance: 1.0e-4
+
+# Evaluation Configuration
+evaluation:
+  batch_size: 8
+  max_samples: 500
+  metrics:
+    - "accuracy"
+    - "per_task_accuracy"
+
+# WandB Configuration
+wandb:
+  enabled: false
+  project: "lore-rl"
+  entity: null
+  tags:
+    - "grpo"
+    - "ultrainteract"

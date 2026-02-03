@@ -28,6 +28,7 @@ from pathlib import Path
 from typing import Any, TypedDict
 
 from src.models.frontier_api import FrontierAPIClient
+from src.monitors.base import MonitorError, MonitorErrorCode
 
 
 # =============================================================================
@@ -478,15 +479,19 @@ Be thorough but avoid false positives. Only flag patterns you are confident repr
                 if attempt < self.max_retries - 1:
                     await asyncio.sleep(1.0 * (attempt + 1))
 
-        # Return conservative result on failure
+        # Return conservative result on failure with structured error info
         self.logger.error(f"All evaluation attempts failed: {last_error}")
+        error_info = MonitorError.from_exception(last_error) if last_error else MonitorError(
+            code=MonitorErrorCode.UNKNOWN,
+            message="Evaluation failed for unknown reason",
+        )
         return AutoraterResult(
             suspicion_score=0.5,  # Neutral on failure
             legibility_score=0.5,
             coverage_score=0.5,
-            reasoning=f"Evaluation failed after {self.max_retries} attempts: {last_error}",
+            reasoning=f"Evaluation failed after {self.max_retries} attempts: {error_info.message}",
             detected_patterns=[],
-            flags=["EVALUATION_FAILED"],
+            flags=["EVALUATION_FAILED", f"ERROR_CODE:{error_info.code.value}"],
         )
 
     async def rate_batch(

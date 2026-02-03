@@ -78,6 +78,44 @@ sandbox = [
     "docker-compose>=1.29.0",
 ]
 
+rl = [
+    # TRL for GRPO training (legacy)
+    "trl>=0.15.0",
+    "peft>=0.14.0",
+    "accelerate>=1.0.0",
+    "bitsandbytes>=0.45.0",
+    "transformers>=4.47.0",
+    "torch>=2.0.0",
+]
+
+verl = [
+    # Verl framework for GRPO training
+    "verl>=0.2.0",
+    "math-verify>=0.5.2",
+    # Verl dependencies
+    "ray>=2.30.0",
+    "torch>=2.0.0",
+    "transformers>=4.47.0",
+    "peft>=0.14.0",
+    "accelerate>=1.0.0",
+    "flash-attn>=2.5.0",
+    "vllm>=0.6.0",
+]
+
+skyrl = [
+    # SkyRL framework for GRPO training (faster than Verl for single-GPU)
+    # NOTE: skyrl may not be published to PyPI yet. The trainer provides
+    # a fallback implementation using vLLM/HuggingFace that works without it.
+    # "skyrl>=0.1.0",  # Uncomment when available on PyPI
+    "math-verify>=0.5.2",
+    # Core dependencies for SkyRL-style training
+    "torch>=2.0.0",
+    "transformers>=4.47.0",
+    "peft>=0.14.0",
+    "accelerate>=1.0.0",
+    "vllm>=0.6.0",
+]
+
 [project.scripts]
 lore = "src.cli:app"
 

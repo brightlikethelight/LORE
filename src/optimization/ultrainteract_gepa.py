@@ -469,8 +469,8 @@ class UltraInteractGEPAAdapter:
 
             for failure in failures:
                 feedback_items.append({
-                    "Inputs": f"[{task_type}] {failure.get('input', '')[:300]}",
-                    "Generated Outputs": failure.get("response", "")[:500],
+                    "Inputs": f"[{task_type}] {failure.get('input', '')}",
+                    "Generated Outputs": failure.get("response", ""),
                     "Feedback": f"{task_type} accuracy: {accuracy:.0%}. {failure.get('feedback', 'Incorrect')}",
                 })
 

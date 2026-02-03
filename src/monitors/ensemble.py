@@ -27,6 +27,7 @@ from typing import Any, TypedDict
 import numpy as np
 
 from src.models.frontier_api import FrontierAPIClient, get_client
+from src.monitors.base import MonitorError, MonitorErrorCode
 from src.monitors.lindner_autorater import (
     AutoraterResult,
     LindnerAutorater,

@@ -16,16 +16,7 @@ from tenacity import (
     retry_if_exception_type,
 )
 
-
-@dataclass
-class CompletionResponse:
-    """Response from a completion API call."""
-
-    content: str
-    model: str
-    usage: dict[str, int]
-    finish_reason: str
-    raw_response: dict[str, Any] | None = None
+from src.models.types import CompletionResponse
 
 
 @dataclass(frozen=True)

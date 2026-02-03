@@ -15,6 +15,7 @@ Features:
 from __future__ import annotations
 
 import json
+import logging
 import random
 import re
 from collections import defaultdict
@@ -28,6 +29,8 @@ import yaml
 from datasets import load_dataset as hf_load_dataset
 
 from src.data.loaders import DataLoader, DataPoint
+
+logger = logging.getLogger(__name__)
 
 
 class TaskType(Enum):
@@ -369,7 +372,7 @@ class BBHLoader:
                 dataset = hf_load_dataset(self.DATASET_SOURCE, alt_name, split="train")
             except Exception:
                 # If task cannot be loaded, return empty list
-                print(f"Warning: Could not load BBH task '{task_name}'")
+                logger.warning(f"Could not load BBH task '{task_name}'")
                 return []
 
         samples = []

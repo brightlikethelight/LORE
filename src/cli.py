@@ -134,23 +134,44 @@ def evaluate(
     model: str = typer.Option("gpt-4o", help="Model to evaluate"),
     samples: int = typer.Option(200, help="Number of samples"),
 ) -> None:
-    """Evaluate an optimized prompt."""
+    """Evaluate an optimized prompt using inspect_ai."""
+    import subprocess
+
+    # Validate prompt file exists
+    if not prompt_path.exists():
+        console.print(f"[red]Error: Prompt file not found: {prompt_path}[/red]")
+        raise typer.Exit(1)
+
     console.print(f"[bold blue]Evaluating prompt on {task}[/bold blue]")
+    console.print(f"Prompt: {prompt_path}")
     console.print(f"Model: {model}")
     console.print(f"Samples: {samples}")
 
-    # Run inspect_ai evaluation
-    import subprocess
+    # Read and display prompt preview
+    prompt_content = prompt_path.read_text().strip()
+    console.print(f"\n[bold]Prompt Preview:[/bold]")
+    console.print(f"  {prompt_content[:100]}..." if len(prompt_content) > 100 else f"  {prompt_content}")
 
+    # Run inspect_ai evaluation
     cmd = [
         "inspect", "eval",
         f"evals/tasks/{task}.py",
         "--model", model,
         "--limit", str(samples),
+        "--system-prompt", str(prompt_path),
     ]
 
-    console.print(f"\nRunning: {' '.join(cmd)}")
-    subprocess.run(cmd)
+    console.print(f"\n[yellow]Running: {' '.join(cmd)}[/yellow]")
+
+    result = subprocess.run(cmd, capture_output=True, text=True)
+    if result.returncode != 0:
+        console.print(f"[red]Evaluation failed with exit code {result.returncode}[/red]")
+        if result.stderr:
+            console.print(f"[red]Error: {result.stderr}[/red]")
+        raise typer.Exit(result.returncode)
+
+    if result.stdout:
+        console.print(result.stdout)
 
 
 @app.command()
@@ -162,20 +183,34 @@ def transfer(
     ),
     task: str = typer.Option("math_reasoning", help="Task to evaluate"),
 ) -> None:
-    """Run transfer evaluation across multiple models."""
+    """Run transfer evaluation across multiple models.
+
+    [STUB] This command is not yet implemented. It will evaluate how well
+    an optimized prompt transfers to different models.
+    """
+    # Validate prompt file exists
+    if not prompt_path.exists():
+        console.print(f"[red]Error: Prompt file not found: {prompt_path}[/red]")
+        raise typer.Exit(1)
+
     model_list = [m.strip() for m in models.split(",")]
 
-    table = Table(title="Transfer Evaluation")
+    console.print(f"[bold blue]Transfer Evaluation[/bold blue]")
+    console.print(f"Prompt: {prompt_path}")
+    console.print(f"Task: {task}")
+    console.print(f"Models: {', '.join(model_list)}")
+
+    table = Table(title="Transfer Evaluation Results")
     table.add_column("Model")
     table.add_column("Accuracy")
     table.add_column("Status")
 
     for model in model_list:
-        # Placeholder - actual evaluation would go here
-        table.add_row(model, "N/A", "pending")
+        table.add_row(model, "N/A", "[yellow]pending[/yellow]")
 
     console.print(table)
-    console.print("\n[yellow]Transfer evaluation not yet implemented[/yellow]")
+    console.print("\n[yellow]Transfer evaluation not yet implemented.[/yellow]")
+    console.print("To implement, run evaluate command for each model and aggregate results.")
 
 
 @app.command()
@@ -213,10 +248,19 @@ def serve(
     host: str = typer.Option("0.0.0.0", help="Host to bind"),
     port: int = typer.Option(8080, help="Port to bind"),
 ) -> None:
-    """Start LORE API server."""
-    console.print(f"[bold blue]Starting LORE API server[/bold blue]")
-    console.print(f"Listening on {host}:{port}")
-    console.print("\n[yellow]API server not yet implemented[/yellow]")
+    """Start LORE API server.
+
+    [STUB] This command is not yet implemented. It will start a REST API
+    server for running LORE experiments programmatically.
+    """
+    console.print(f"[bold blue]LORE API Server[/bold blue]")
+    console.print(f"Configuration: {host}:{port}")
+    console.print("\n[yellow]API server not yet implemented.[/yellow]")
+    console.print("Planned endpoints:")
+    console.print("  POST /optimize - Run GEPA optimization")
+    console.print("  POST /evaluate - Evaluate a prompt")
+    console.print("  POST /monitor  - Run CoT monitoring")
+    console.print("  GET  /health   - Health check")
 
 
 @app.command("ultrainteract-evolve")
@@ -522,6 +566,409 @@ def crh_eval(
         console.print(f"\n[red]Missing dependency: {e}[/red]")
         console.print("Ensure caught_red_handed submodule is initialized:")
         console.print("  git submodule update --init --recursive")
+        raise typer.Exit(1)
+    except Exception as e:
+        console.print(f"\n[red]Evaluation failed: {e}[/red]")
+        import traceback
+        traceback.print_exc()
+        raise typer.Exit(1)
+
+
+@app.command("rl-train")
+def rl_train(
+    model: str = typer.Option("Qwen/Qwen2.5-7B-Instruct", help="Base model to train"),
+    output: Path = typer.Option(Path("results/grpo"), help="Output directory"),
+    samples: int = typer.Option(5000, help="Number of training samples"),
+    val_samples: int = typer.Option(500, help="Number of validation samples"),
+    max_steps: Optional[int] = typer.Option(None, help="Maximum training steps (None for full epochs)"),
+    config: Optional[Path] = typer.Option(None, help="Path to config YAML file"),
+    wandb_enabled: bool = typer.Option(False, "--wandb", help="Enable wandb logging"),
+    eval_baseline: bool = typer.Option(True, "--baseline/--no-baseline", help="Evaluate baseline before training"),
+    baseline_samples: int = typer.Option(100, help="Number of samples for baseline evaluation"),
+    seed: int = typer.Option(42, help="Random seed"),
+) -> None:
+    """Train a model on UltraInteract using GRPO.
+
+    Uses TRL's GRPO (Group Relative Policy Optimization) to train a language
+    model on the UltraInteract dataset with task-based rewards.
+
+    GRPO is memory-efficient (no value model) and effective for reasoning tasks.
+    LoRA is used by default for parameter-efficient training.
+
+    Example:
+        lore rl-train --model Qwen/Qwen2.5-7B-Instruct --samples 5000 --wandb
+
+    Smoke test:
+        lore rl-train --samples 100 --max-steps 10
+    """
+    import random
+    import numpy as np
+
+    # Set random seeds
+    random.seed(seed)
+    np.random.seed(seed)
+
+    console.print("[bold blue]GRPO Training on UltraInteract[/bold blue]")
+    console.print(f"Model: {model}")
+    console.print(f"Training samples: {samples}")
+    console.print(f"Validation samples: {val_samples}")
+    console.print(f"Output: \n{output}")
+    if max_steps:
+        console.print(f"Max steps: {max_steps}")
+    console.print(f"WandB: {'enabled' if wandb_enabled else 'disabled'}")
+    console.print(f"Baseline eval: {'enabled' if eval_baseline else 'disabled'}")
+
+    try:
+        from src.rl.config import RLConfig, load_config
+        from src.rl.grpo_trainer import LOREGRPOTrainer
+        from src.rl.data_pipeline import load_ultrainteract_for_grpo
+
+        # Load or create config
+        if config and config.exists():
+            rl_config = load_config(config)
+            console.print(f"[yellow]Loaded config from {config}[/yellow]")
+        else:
+            rl_config = RLConfig()
+
+        # Override with CLI arguments
+        rl_config.grpo.model_name = model
+        rl_config.grpo.output_dir = str(output)
+        rl_config.dataset.train_size = samples
+        rl_config.dataset.val_size = val_samples
+        rl_config.dataset.seed = seed
+        rl_config.wandb.enabled = wandb_enabled
+
+        # Create trainer
+        console.print("\n[yellow]Initializing trainer...[/yellow]")
+        trainer = LOREGRPOTrainer(config=rl_config)
+
+        # Load datasets
+        console.print("[yellow]Loading UltraInteract dataset...[/yellow]")
+        datasets = load_ultrainteract_for_grpo(
+            train_size=samples,
+            val_size=val_samples,
+            tokenizer=trainer.tokenizer,
+            seed=seed,
+            task_types=rl_config.dataset.task_types,
+        )
+
+        console.print(f"Train: {len(datasets['train'])} samples")
+        console.print(f"Val: {len(datasets['val'])} samples")
+
+        # Train
+        console.print("\n[yellow]Starting GRPO training...[/yellow]")
+        console.print("This may take a while depending on dataset size and hardware.")
+
+        result = trainer.train(
+            train_dataset=datasets["train"],
+            eval_dataset=datasets["val"],
+            max_steps=max_steps,
+            evaluate_baseline=eval_baseline,
+            baseline_samples=baseline_samples,
+        )
+
+        # Display results
+        console.print(f"\n[green]Training complete![/green]")
+        console.print(f"Model saved to: {result.model_path}")
+        console.print(f"Training steps: {result.training_steps}")
+        console.print(f"Final loss: {result.final_loss:.4f}")
+        console.print(f"Wall time: {result.wall_time_seconds:.1f}s")
+
+        # Display accuracy improvement if available
+        if "improvement" in result.metrics and result.metrics["improvement"]:
+            console.print(f"\n[bold]Accuracy Improvement:[/bold]")
+            for task_type, delta in result.metrics["improvement"].items():
+                baseline = result.metrics.get("baseline_accuracy", {}).get(task_type, 0)
+                final = baseline + delta
+                delta_str = f"+{delta:.1%}" if delta >= 0 else f"{delta:.1%}"
+                color = "green" if delta > 0 else ("red" if delta < 0 else "yellow")
+                console.print(f"  {task_type}: {baseline:.1%} → {final:.1%} ([{color}]{delta_str}[/{color}])")
+
+    except ImportError as e:
+        console.print(f"\n[red]Missing RL dependencies![/red]")
+        console.print(f"Error: {e}")
+        console.print("\nInstall with: pip install -e \".[rl]\"")
+        raise typer.Exit(1)
+    except Exception as e:
+        console.print(f"\n[red]Training failed: {e}[/red]")
+        import traceback
+        traceback.print_exc()
+        raise typer.Exit(1)
+
+
+@app.command("skyrl-train")
+def skyrl_train(
+    model: str = typer.Option("Qwen/Qwen2.5-7B-Instruct", help="Base model to train"),
+    output: Path = typer.Option(Path("results/skyrl_grpo"), help="Output directory"),
+    math_samples: int = typer.Option(10000, help="Number of math training samples"),
+    logic_samples: int = typer.Option(5000, help="Number of logic training samples"),
+    code_samples: int = typer.Option(2000, help="Number of code training samples"),
+    group_size: int = typer.Option(4, help="GRPO group size (generations per prompt)"),
+    batch_size: int = typer.Option(8, help="Training batch size"),
+    max_steps: Optional[int] = typer.Option(None, help="Maximum training steps (None for full epochs)"),
+    config: Optional[Path] = typer.Option(None, help="Path to config YAML file"),
+    wandb_enabled: bool = typer.Option(False, "--wandb", help="Enable wandb logging"),
+    smoke_test: bool = typer.Option(False, "--smoke-test", help="Run quick smoke test"),
+    use_vllm: bool = typer.Option(True, help="Use vLLM for faster generation"),
+    seed: int = typer.Option(42, help="Random seed"),
+) -> None:
+    """Train a model on multi-task reasoning using SkyRL GRPO.
+
+    SkyRL provides faster single-GPU training compared to Verl through
+    better async batched generation. This is recommended when running
+    without a Ray cluster.
+
+    Example:
+        lore skyrl-train --model Qwen/Qwen2.5-7B-Instruct --math-samples 10000
+
+    Smoke test:
+        lore skyrl-train --smoke-test
+    """
+    import random
+    import numpy as np
+
+    # Set random seeds
+    random.seed(seed)
+    np.random.seed(seed)
+
+    # Override settings for smoke test
+    if smoke_test:
+        console.print("[yellow]Running smoke test with minimal configuration[/yellow]")
+        math_samples = 50
+        logic_samples = 30
+        code_samples = 20
+        max_steps = 10
+        batch_size = 2
+        group_size = 2
+        output = output.parent / f"{output.name}_smoke"
+
+    console.print("[bold blue]SkyRL GRPO Training[/bold blue]")
+    console.print(f"Model: {model}")
+    console.print(f"Output: {output}")
+    console.print(f"Math samples: {math_samples}")
+    console.print(f"Logic samples: {logic_samples}")
+    console.print(f"Code samples: {code_samples}")
+    console.print(f"Group size: {group_size}")
+    console.print(f"Batch size: {batch_size}")
+    if max_steps:
+        console.print(f"Max steps: {max_steps}")
+    console.print(f"Use vLLM: {use_vllm}")
+    console.print(f"WandB: {'enabled' if wandb_enabled else 'disabled'}")
+
+    try:
+        from src.rl.skyrl_trainer import SkyRLConfig, LORESkyRLTrainer
+        from src.rl.skyrl_data_pipeline import load_skyrl_datasets, load_smoke_test_datasets
+        from src.rl.skyrl_rewards import create_skyrl_reward_fn
+
+        # Load or create config
+        if config and config.exists():
+            skyrl_config = SkyRLConfig.from_yaml(config)
+            console.print(f"[yellow]Loaded config from {config}[/yellow]")
+        else:
+            skyrl_config = SkyRLConfig()
+
+        # Override with CLI arguments
+        skyrl_config.model_name = model
+        skyrl_config.output_dir = str(output)
+        skyrl_config.group_size = group_size
+        skyrl_config.batch_size = batch_size
+        skyrl_config.use_vllm = use_vllm
+
+        # Create trainer
+        console.print("\n[yellow]Initializing SkyRL trainer...[/yellow]")
+        reward_fn = create_skyrl_reward_fn(use_docker=False)
+        trainer = LORESkyRLTrainer(config=skyrl_config, reward_fn=reward_fn)
+
+        # Load datasets
+        console.print("[yellow]Loading datasets...[/yellow]")
+        if smoke_test:
+            datasets = load_smoke_test_datasets(
+                math_samples=math_samples,
+                logic_samples=logic_samples,
+                code_samples=code_samples,
+                seed=seed,
+                tokenizer=trainer.tokenizer,
+            )
+        else:
+            datasets = load_skyrl_datasets(
+                math_samples=math_samples,
+                logic_samples=logic_samples,
+                code_samples=code_samples,
+                seed=seed,
+                tokenizer=trainer.tokenizer,
+            )
+
+        console.print(f"Train: {len(datasets['train'])} samples")
+        console.print(f"Val: {len(datasets['val'])} samples")
+
+        # Train
+        console.print("\n[yellow]Starting SkyRL GRPO training...[/yellow]")
+        console.print("This may take a while depending on dataset size and hardware.")
+
+        result = trainer.train(
+            train_dataset=datasets["train"],
+            eval_dataset=datasets["val"],
+            max_steps=max_steps,
+        )
+
+        # Display results
+        console.print(f"\n[green]Training complete![/green]")
+        console.print(f"Model saved to: {result.model_path}")
+        console.print(f"Training steps: {result.training_steps}")
+        console.print(f"Final loss: {result.final_loss:.4f}")
+        console.print(f"Wall time: {result.wall_time_seconds:.1f}s")
+
+        if result.metrics and "reward_mean" in result.metrics:
+            rewards = result.metrics["reward_mean"]
+            if rewards:
+                console.print(f"Final mean reward: {rewards[-1]:.4f}")
+
+    except ImportError as e:
+        console.print(f"\n[red]Missing SkyRL dependencies![/red]")
+        console.print(f"Error: {e}")
+        console.print("\nInstall with: pip install -e \".[skyrl]\"")
+        raise typer.Exit(1)
+    except Exception as e:
+        console.print(f"\n[red]Training failed: {e}[/red]")
+        import traceback
+        traceback.print_exc()
+        raise typer.Exit(1)
+
+
+@app.command("rl-eval")
+def rl_eval(
+    checkpoint: Path = typer.Argument(..., help="Path to trained model checkpoint"),
+    output: Path = typer.Option(Path("results/rl_eval"), help="Output directory"),
+    samples: int = typer.Option(500, help="Number of test samples"),
+    compare_base: bool = typer.Option(False, "--compare", help="Compare against base model"),
+    base_model: Optional[str] = typer.Option(None, help="Base model for comparison"),
+    seed: int = typer.Option(42, help="Random seed"),
+) -> None:
+    """Evaluate an RL-trained model on UltraInteract.
+
+    Evaluates the model on the test split and reports:
+    - Overall accuracy
+    - Per-task accuracy (Coding, Math_CoT, Math_PoT, Logic)
+
+    Optionally compares against the base model to measure improvement.
+
+    Example:
+        lore rl-eval ./results/grpo/final --samples 500
+
+    With comparison:
+        lore rl-eval ./results/grpo/final --compare --base-model Qwen/Qwen2.5-7B-Instruct
+    """
+    import random
+    import numpy as np
+
+    # Set random seeds
+    random.seed(seed)
+    np.random.seed(seed)
+
+    if not checkpoint.exists():
+        console.print(f"[red]Checkpoint not found: {checkpoint}[/red]")
+        raise typer.Exit(1)
+
+    console.print("[bold blue]RL Model Evaluation[/bold blue]")
+    console.print(f"Checkpoint: {checkpoint}")
+    console.print(f"Test samples: {samples}")
+    console.print(f"Output: {output}")
+    if compare_base:
+        console.print(f"Base model: {base_model or 'from checkpoint config'}")
+
+    try:
+        from src.rl.evaluation import evaluate_model, compare_models
+        from src.data.ultrainteract import UltraInteractLoader
+
+        # Load test samples
+        console.print("\n[yellow]Loading test samples...[/yellow]")
+        loader = UltraInteractLoader(seed=seed)
+        splits = loader.load_stratified(
+            train_size=0,
+            val_size=0,
+            test_size=samples,
+        )
+        test_samples = splits["test"]
+
+        # Show task distribution
+        dist = loader.get_task_distribution(test_samples)
+        console.print("[bold]Test Distribution:[/bold]")
+        for task, count in sorted(dist.items()):
+            console.print(f"  {task}: {count}")
+
+        if compare_base and base_model:
+            # Compare against base model
+            console.print("\n[yellow]Comparing models...[/yellow]")
+
+            result = compare_models(
+                base_model=base_model,
+                trained_model=checkpoint,
+                test_samples=test_samples,
+                output_dir=output,
+            )
+
+            # Display comparison
+            console.print(f"\n[green]Evaluation complete![/green]")
+
+            table = Table(title="Model Comparison")
+            table.add_column("Metric")
+            table.add_column("Base")
+            table.add_column("Trained")
+            table.add_column("Delta")
+
+            table.add_row(
+                "Overall Accuracy",
+                f"{result.base_result.overall_accuracy:.1%}",
+                f"{result.trained_result.overall_accuracy:.1%}",
+                f"{result.accuracy_delta:+.1%}",
+            )
+
+            for task in sorted(result.per_task_delta.keys()):
+                base_acc = result.base_result.per_task_accuracy.get(task, 0)
+                trained_acc = result.trained_result.per_task_accuracy.get(task, 0)
+                delta = result.per_task_delta[task]
+                table.add_row(
+                    f"  {task}",
+                    f"{base_acc:.1%}",
+                    f"{trained_acc:.1%}",
+                    f"{delta:+.1%}",
+                )
+
+            console.print(table)
+
+            if result.accuracy_delta > 0.05:
+                console.print(f"\n[bold green]Significant improvement: {result.accuracy_delta:+.1%}[/bold green]")
+            elif result.accuracy_delta < -0.05:
+                console.print(f"\n[bold red]Performance regression: {result.accuracy_delta:+.1%}[/bold red]")
+            else:
+                console.print(f"\n[yellow]Marginal change: {result.accuracy_delta:+.1%}[/yellow]")
+
+        else:
+            # Evaluate trained model only
+            console.print("\n[yellow]Evaluating model...[/yellow]")
+
+            result = evaluate_model(
+                model_path=checkpoint,
+                test_samples=test_samples,
+                output_dir=output,
+            )
+
+            # Display results
+            console.print(f"\n[green]Evaluation complete![/green]")
+            console.print(f"Overall Accuracy: {result.overall_accuracy:.1%}")
+
+            console.print("\n[bold]Per-Task Accuracy:[/bold]")
+            for task, acc in sorted(result.per_task_accuracy.items()):
+                console.print(f"  {task}: {acc:.1%}")
+
+            console.print(f"\nWall time: {result.wall_time_seconds:.1f}s")
+
+        console.print(f"\nResults saved to: {output}")
+
+    except ImportError as e:
+        console.print(f"\n[red]Missing RL dependencies![/red]")
+        console.print(f"Error: {e}")
+        console.print("\nInstall with: pip install -e \".[rl]\"")
         raise typer.Exit(1)
     except Exception as e:
         console.print(f"\n[red]Evaluation failed: {e}[/red]")

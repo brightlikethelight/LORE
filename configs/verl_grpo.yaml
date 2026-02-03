@@ -1,0 +1,134 @@
+# Verl GRPO Training Configuration
+#
+# This config is optimized for training on OpenR1-Math-220k and SynLogic datasets
+# using the Verl framework for GRPO (Group Relative Policy Optimization).
+#
+# Reference: SynLogic paper recommends these settings for logic reasoning tasks
+
+# Model Configuration
+model:
+  name: "Qwen/Qwen2.5-7B-Instruct"
+  # Alternative models:
+  # - "Qwen/Qwen2.5-14B-Instruct"
+  # - "deepseek-ai/DeepSeek-R1-Distill-Qwen-7B"
+  # - "meta-llama/Llama-3.1-8B-Instruct"
+
+# GRPO Training Configuration
+grpo:
+  # Group size for GRPO (number of generations per prompt)
+  # Higher values provide better variance estimation but require more compute
+  group_size: 16
+
+  # Learning rate
+  # Lower values are more stable, SynLogic recommends 1e-6
+  learning_rate: 1e-6
+
+  # Clipping ratios for PPO-style objective
+  clip_high: 0.28
+  clip_low: 0.2
+
+  # KL penalty coefficient (controls deviation from reference policy)
+  beta: 0.04
+
+  # Number of training epochs
+  num_epochs: 1
+
+  # Batch sizes
+  prompt_batch_size: 128  # Number of prompts per batch
+  mini_batch_size: 64     # Mini-batch size for PPO updates
+
+  # Sequence lengths
+  # SynLogic uses 16k for long reasoning chains
+  max_prompt_length: 2048
+  max_response_length: 16384
+
+  # Sampling parameters
+  temperature: 0.7
+  top_p: 0.9
+
+  # Optimization
+  gradient_accumulation_steps: 4
+  max_grad_norm: 1.0
+  warmup_ratio: 0.1
+  weight_decay: 0.01
+
+  # Precision
+  bf16: true
+
+# LoRA Configuration (for efficient fine-tuning)
+lora:
+  enabled: true
+  r: 16
+  alpha: 32
+  dropout: 0.05
+  target_modules:
+    - q_proj
+    - v_proj
+    - k_proj
+    - o_proj
+    - gate_proj
+    - up_proj
+    - down_proj
+
+# Dataset Configuration
+dataset:
+  # Sample sizes for each task type
+  train:
+    math: 10000
+    logic: 5000
+    code: 2000
+  val:
+    math: 500
+    logic: 250
+    code: 100
+
+  # Seed for reproducibility
+  seed: 42
+
+  # SynLogic difficulty levels to include (available: easy, hard)
+  synlogic_difficulties:
+    - easy
+    - hard
+
+# Reward Configuration
+reward:
+  # Math reward settings
+  math:
+    tolerance: 1e-6
+    timeout: 30
+
+  # Logic reward settings
+  logic:
+    require_think_tags: true
+    format_penalty: 0.0
+
+  # Code execution settings
+  code:
+    use_docker: true
+    timeout: 10
+    memory_limit: "256m"
+    partial_credit: false
+
+# Checkpointing and Logging
+output_dir: "results/verl_grpo"
+logging_steps: 10
+save_steps: 100
+eval_steps: 100
+save_total_limit: 3
+
+# WandB Configuration
+wandb:
+  enabled: false
+  project: "lore-verl-grpo"
+  entity: null
+  tags:
+    - grpo
+    - verl
+    - openr1
+    - synlogic
+
+# Distributed Training (for multi-GPU)
+distributed:
+  enabled: false
+  world_size: 1
+  backend: "nccl"

@@ -5,8 +5,15 @@ This module provides:
 - EnsembleMonitor: Multi-judge ensemble for robust obfuscation detection
 - ObfuscationDetector: General obfuscation detection methods
 - Utility functions for Regime B fitness calculation
+- Base types for standardized error handling
 """
 
+from src.monitors.base import (
+    MonitorError,
+    MonitorErrorCode,
+    MonitorResult,
+    handle_monitor_error,
+)
 from src.monitors.lindner_autorater import (
     # Main class
     LindnerAutorater,
@@ -50,6 +57,11 @@ from src.monitors.detection import (
 )
 
 __all__ = [
+    # Base types
+    "MonitorError",
+    "MonitorErrorCode",
+    "MonitorResult",
+    "handle_monitor_error",
     # Lindner Autorater
     "LindnerAutorater",
     "AutoraterResult",
